@@ -16,6 +16,7 @@ import com.project.chitti.dto.ChitAddRequestDTO;
 import com.project.chitti.dto.ChitMemberDetailsDTO;
 import com.project.chitti.dto.ChitResponseDTO;
 import com.project.chitti.dto.InstallmentDetailsDTO;
+import com.project.chitti.dto.PaymentReceiptDTO;
 import com.project.chitti.dto.PaymentRequestDTO;
 import com.project.chitti.dto.TransactionDetailsDTO;
 import com.project.chitti.dto.UserAddRequestDTO;
@@ -54,7 +55,7 @@ public class AdminController {
 	}
 	
 	@PostMapping("/chit/pay")
-	public String makePayment(@RequestBody PaymentRequestDTO dto) {
+	public PaymentReceiptDTO makePayment(@RequestBody PaymentRequestDTO dto) {
 	    return adminService.processPayment(dto);
 	}
 	

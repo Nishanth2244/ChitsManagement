@@ -12,6 +12,7 @@ import com.project.chitti.dto.ChitAddRequestDTO;
 import com.project.chitti.dto.ChitMemberDetailsDTO;
 import com.project.chitti.dto.ChitResponseDTO;
 import com.project.chitti.dto.InstallmentDetailsDTO;
+import com.project.chitti.dto.PaymentReceiptDTO;
 import com.project.chitti.dto.PaymentRequestDTO;
 import com.project.chitti.dto.TransactionDetailsDTO;
 import com.project.chitti.dto.UserAddRequestDTO;
@@ -119,7 +120,7 @@ public class AdminService {
 	}
 	
 	
-	public String processPayment(PaymentRequestDTO dto) {
+	public PaymentReceiptDTO processPayment(PaymentRequestDTO dto) {
 	    
 	    // 1. Validate if user is in that chit
 	    ChitMembers chitMember = chitMemberRepository.findByChitIdAndUserId(dto.getChitId(), dto.getUserId())
@@ -139,7 +140,7 @@ public class AdminService {
 	    transactions.setPaidOn(LocalDateTime.now());
 	    transactions.setPaymentMethod(dto.getPaymentMethod());
 	    
-	    transactionRepository.save(transactions);
+	    Transactions savedTransaction = transactionRepository.save(transactions);
 	    
 //	    4.Update the installment paid Amt.
 	    Long totalPaidAfterThis = selectedInstallment.getPaidAmt() + dto.getAmount();
@@ -156,7 +157,19 @@ public class AdminService {
 	    
 	    installmentRepository.save(selectedInstallment);
 
-	    return "Payment of " + dto.getAmount() + " recorded successfully via " + dto.getPaymentMethod();
+	    return PaymentReceiptDTO.builder()
+	    		.transactionId(savedTransaction.getId())
+	    		.chitName(chitMember.getChit().getName())
+	    		.memberName(chitMember.getUser().getName())
+	    		.phoneNo(chitMember.getUser().getPhoneNo())
+	    		.monthNumber(selectedInstallment.getMonthNumber())
+	    		.paidAmount(dto.getAmount())
+	            .paymentMethod(dto.getPaymentMethod())
+	            .paidOn(savedTransaction.getPaidOn())
+	            .monthExpectedAmount(selectedInstallment.getExpectedAmt())
+	            .monthBalanceDue(selectedInstallment.getExpectedAmt() - selectedInstallment.getPaidAmt())
+	            .installmentStatus(selectedInstallment.getStatus())
+	            .build();
 	    
 	}
 
