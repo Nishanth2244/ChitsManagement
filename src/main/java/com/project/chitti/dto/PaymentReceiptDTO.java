@@ -12,7 +12,8 @@ public class PaymentReceiptDTO {
     private String memberName;
     private String phoneNo;          
     private Integer monthNumber;
-    private Long paidAmount;        
+    private Long paidAmount;    
+    private Long fineAmount;
     private String paymentMethod;
     private LocalDateTime paidOn;
     

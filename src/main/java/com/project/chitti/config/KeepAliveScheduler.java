@@ -15,7 +15,10 @@ public class KeepAliveScheduler {
     @Autowired
     private RestTemplate restTemplate;
 
-    private final String myUrl = "https://chitsmanagement.onrender.com/api/admin/users/ByStatus?page=0&size=15&status=true";
+    private final String myUrl = "https://chitsmanagement.onrender.com/api/admin/hello";
+    
+//    private final String myUrl = "http://localhost:8082/api/admin/hello";
+
 
     @Scheduled(fixedRate = 600000)
     public void keepAlive() {

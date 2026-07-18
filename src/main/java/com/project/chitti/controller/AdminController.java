@@ -21,10 +21,14 @@ import com.project.chitti.dto.PaymentRequestDTO;
 import com.project.chitti.dto.TransactionDetailsDTO;
 import com.project.chitti.dto.UserAddRequestDTO;
 import com.project.chitti.dto.UserResponseDTO;
+import com.project.chitti.dto.UserSearchResponseDTO;
 import com.project.chitti.service.AdminService;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+
+@Slf4j
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
@@ -101,5 +105,21 @@ public class AdminController {
 	public List<TransactionDetailsDTO> getInstallmentTransactions(@PathVariable Long installmentId){
 		
 		return adminService.getTransactionsByInstId(installmentId);
+	}
+	
+	
+	@GetMapping("/user/search")
+	public List<UserSearchResponseDTO> searchUser(@RequestParam String name,
+													@RequestParam String phoneNo){
+		
+		return adminService.searchUser(name, phoneNo);
+		
+	}
+	
+	
+	@GetMapping("/hello")
+	public String hello() {
+		log.info("schedular fcorm cotnroller");
+		return "hello";
 	}
 }

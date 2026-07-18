@@ -1,5 +1,6 @@
 package com.project.chitti.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -20,6 +21,8 @@ public interface UserRepository extends JpaRepository<Users, Long> {
 	boolean existsByName(String name);
 	
 	Page<Users> findByStatusAndRoleNot(boolean status, String role, Pageable pageable);
+	
+	List<Users> findByNameContainingIgnoreCaseAndPhoneNoContaining(String name, String phoneNo);
 	
 	
 }

@@ -3,6 +3,7 @@ package com.project.chitti.service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,12 +18,14 @@ import com.project.chitti.dto.PaymentRequestDTO;
 import com.project.chitti.dto.TransactionDetailsDTO;
 import com.project.chitti.dto.UserAddRequestDTO;
 import com.project.chitti.dto.UserResponseDTO;
+import com.project.chitti.dto.UserSearchResponseDTO;
 import com.project.chitti.entity.ChitMembers;
 import com.project.chitti.entity.Chits;
 import com.project.chitti.entity.Installments;
 import com.project.chitti.entity.Transactions;
 import com.project.chitti.entity.Users;
 import com.project.chitti.exceptionHandler.AlreadyExistsException;
+import com.project.chitti.exceptionHandler.BadRequestException;
 import com.project.chitti.exceptionHandler.ResourceNotFoundException;
 import com.project.chitti.repository.ChitMemberRepository;
 import com.project.chitti.repository.ChitRepository;
@@ -91,6 +94,10 @@ public class AdminService {
 		Users user = userRepository.findById(userId)
 				.orElseThrow(() -> new ResourceNotFoundException("No memeber found to add in chit: "+ userId));
 		
+		if (chitMemberRepository.existsByUserAndChit(user, chit)) {
+		    throw new RuntimeException("User already joined this chit");
+		}
+		
 		ChitMembers chitMembers = new ChitMembers();
 		chitMembers.setChit(chit);
 		chitMembers.setUser(user);
@@ -132,18 +139,22 @@ public class AdminService {
 	            .findByChitMemberIdAndMonthNumber(chitMember.getId(), dto.getMonthNumber())
 	            .orElseThrow(() -> new ResourceNotFoundException("Invalid month number for this chit"));
 
+	    Long actualAmount = (dto.getAmount() != null) ? dto.getAmount() : 0L;
+	    Long actualFine = (dto.getFineAmount() != null) ? dto.getFineAmount() : 0L;
+	    
 	    
 //	    3. create a trasaction of that installment.
 	    Transactions transactions = new Transactions();
 	    transactions.setInstallment(selectedInstallment);
-	    transactions.setPaidAmount(dto.getAmount());	    
+	    transactions.setPaidAmount(actualAmount);	
+	    transactions.setFineAmount(actualFine);
 	    transactions.setPaidOn(LocalDateTime.now());
 	    transactions.setPaymentMethod(dto.getPaymentMethod());
 	    
 	    Transactions savedTransaction = transactionRepository.save(transactions);
 	    
 //	    4.Update the installment paid Amt.
-	    Long totalPaidAfterThis = selectedInstallment.getPaidAmt() + dto.getAmount();
+	    Long totalPaidAfterThis = selectedInstallment.getPaidAmt() + actualAmount;
 	    selectedInstallment.setPaidAmt(totalPaidAfterThis);
 	    
 	    
@@ -163,7 +174,8 @@ public class AdminService {
 	    		.memberName(chitMember.getUser().getName())
 	    		.phoneNo(chitMember.getUser().getPhoneNo())
 	    		.monthNumber(selectedInstallment.getMonthNumber())
-	    		.paidAmount(dto.getAmount())
+	    		.paidAmount(actualAmount)
+	    		.fineAmount(actualFine)
 	            .paymentMethod(dto.getPaymentMethod())
 	            .paidOn(savedTransaction.getPaidOn())
 	            .monthExpectedAmount(selectedInstallment.getExpectedAmt())
@@ -281,10 +293,30 @@ public class AdminService {
 				.map(transaction -> TransactionDetailsDTO.builder()
 						.transactionId(transaction.getId())
 						.paidAmount(transaction.getPaidAmount())
+						.fineAmount(transaction.getFineAmount())
 						.paymentMethod(transaction.getPaymentMethod())
 						.paidOn(transaction.getPaidOn())
 						.build())
 				.toList();
+	}
+
+
+	public List<UserSearchResponseDTO> searchUser(String name, String phoneNo) {
+		
+		
+	    if (name == null || name.trim().isEmpty() || phoneNo == null || phoneNo.trim().isEmpty()) {
+	        throw new BadRequestException("Both Name and Phone Number are required for searching");
+	    }
+
+	    List<Users> users = userRepository.findByNameContainingIgnoreCaseAndPhoneNoContaining(name, phoneNo);
+
+	    return users.stream().map(u -> new UserSearchResponseDTO(
+	            u.getId(),
+	            u.getName(),
+	            u.getPhoneNo(),
+	            u.getAddress(),
+	            u.isStatus()
+	    )).collect(Collectors.toList());
 	}
 
 }

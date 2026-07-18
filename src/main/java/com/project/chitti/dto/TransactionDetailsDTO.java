@@ -15,4 +15,5 @@ public class TransactionDetailsDTO {
     private Long paidAmount;
     private String paymentMethod; // "CASH" or "UPI"
     private LocalDateTime paidOn;
+    private Long fineAmount;
 }
