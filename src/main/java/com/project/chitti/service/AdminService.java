@@ -293,7 +293,7 @@ public class AdminService {
 	                Long liftAmt = null;
 	                LocalDateTime liftDate = null;
 	                
-	                // 3. Ee exact month lo ne lift chesi unte, data map cheyyi
+	                // 3. Mapping exact which month he lifted the chit
 	                if (memberLiftOpt.isPresent() && memberLiftOpt.get().getMonthNumber().equals(installment.getMonthNumber())) {
 	                    isLiftedThisMonth = true;
 	                    liftAmt = memberLiftOpt.get().getLiftedAmount();
@@ -440,7 +440,6 @@ public class AdminService {
 	
 	public String createLoan(LoanCreateRequestDTO dto) {
 	    
-	    // 1. Guardrail Validations
 	    if (dto.getLoanAmount() == null || dto.getLoanAmount() <= 0) {
 	        throw new BadRequestException("Loan amount must be greater than zero");
 	    }
@@ -593,6 +592,7 @@ public class AdminService {
 	    } else {
 	        installment.setStatus("PARTIAL");
 	    }
+	    
 	    loanInstallmentRepository.save(installment);
 
 	    return "Successfully processed payment of " + paymentAmt + " for Loan EMI Month " + installment.getMonthNumber();

@@ -160,9 +160,9 @@ public class AdminController {
 	
 	
 	@GetMapping("/loan/{loanId}/installments")
-	public List<LoanInstallmentResponseDTO> installmentByLoanId(@PathVariable Long loadId){
+	public List<LoanInstallmentResponseDTO> installmentByLoanId(@PathVariable Long loanId){
 		
-		return adminService.getLoanInstallments(loadId);
+		return adminService.getLoanInstallments(loanId);
 	}
 	
 	
