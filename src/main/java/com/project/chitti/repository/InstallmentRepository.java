@@ -14,4 +14,6 @@ public interface InstallmentRepository extends JpaRepository<Installments, Long>
 	Optional<Installments> findByChitMemberIdAndMonthNumber(Long chitMemberId, Integer monthNumber);
 	
 	List<Installments> findByChitMemberIdOrderByMonthNumberAsc(Long chitMemberId);
+	
+	List<Installments> findByChitMemberChitIdAndMonthNumber(Long chitId, Integer monthNumber);
 }

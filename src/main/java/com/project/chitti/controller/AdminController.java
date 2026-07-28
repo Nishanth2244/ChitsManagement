@@ -13,9 +13,16 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.project.chitti.dto.ChitAddRequestDTO;
+import com.project.chitti.dto.ChitLiftRequestDTO;
 import com.project.chitti.dto.ChitMemberDetailsDTO;
 import com.project.chitti.dto.ChitResponseDTO;
 import com.project.chitti.dto.InstallmentDetailsDTO;
+import com.project.chitti.dto.LoanCreateRequestDTO;
+import com.project.chitti.dto.LoanInstallmentResponseDTO;
+import com.project.chitti.dto.LoanPaymentRequestDTO;
+import com.project.chitti.dto.LoanSummaryResponseDTO;
+import com.project.chitti.dto.LoanTransactionResponseDTO;
+import com.project.chitti.dto.MonthlyFilterResponseDTO;
 import com.project.chitti.dto.PaymentReceiptDTO;
 import com.project.chitti.dto.PaymentRequestDTO;
 import com.project.chitti.dto.TransactionDetailsDTO;
@@ -121,5 +128,54 @@ public class AdminController {
 	public String hello() {
 		log.info("schedular fcorm cotnroller");
 		return "hello";
+	}
+	
+	
+	@PostMapping("/chit/lift")
+	public String liftChit(@RequestBody ChitLiftRequestDTO dto) {
+	    return adminService.recordChitLift(dto);
+	}
+	
+	
+	@GetMapping("/chits/{chitId}/filter-by-month")
+	public List<MonthlyFilterResponseDTO> filterChitByMonth(@PathVariable Long chitId,
+															@RequestParam Integer monthnumber,
+															@RequestParam(defaultValue = "ALL") String filterType){
+		
+		return adminService.getChitMonthReport(chitId, monthnumber, filterType);
+	}
+	
+	
+	@PostMapping("/loan/create")
+	public String createLoan(@RequestBody LoanCreateRequestDTO dto) {
+	    return adminService.createLoan(dto);
+	}
+	
+	
+	@GetMapping("/user/{userId}/loans")
+	public List<LoanSummaryResponseDTO> getLoanBUserId(@PathVariable Long userId){
+		
+		return adminService.getUserLoans(userId);
+	}
+	
+	
+	@GetMapping("/loan/{loanId}/installments")
+	public List<LoanInstallmentResponseDTO> installmentByLoanId(@PathVariable Long loadId){
+		
+		return adminService.getLoanInstallments(loadId);
+	}
+	
+	
+	@GetMapping("/loan/installments/{installmentId}/transactions")
+	public List<LoanTransactionResponseDTO> getTraByInstId(@PathVariable Long installmentId){
+		
+		return adminService.getLoanTransactions(installmentId);
+	}
+	
+	
+	@PostMapping("/loan/pay")
+	public String payLoan(@RequestBody LoanPaymentRequestDTO dto) {
+		
+		return adminService.payLoan(dto);
 	}
 }

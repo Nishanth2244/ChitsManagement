@@ -3,6 +3,7 @@ package com.project.chitti.service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -10,26 +11,41 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.project.chitti.dto.ChitAddRequestDTO;
+import com.project.chitti.dto.ChitLiftRequestDTO;
 import com.project.chitti.dto.ChitMemberDetailsDTO;
 import com.project.chitti.dto.ChitResponseDTO;
 import com.project.chitti.dto.InstallmentDetailsDTO;
+import com.project.chitti.dto.LoanCreateRequestDTO;
+import com.project.chitti.dto.LoanInstallmentResponseDTO;
+import com.project.chitti.dto.LoanPaymentRequestDTO;
+import com.project.chitti.dto.LoanSummaryResponseDTO;
+import com.project.chitti.dto.LoanTransactionResponseDTO;
+import com.project.chitti.dto.MonthlyFilterResponseDTO;
 import com.project.chitti.dto.PaymentReceiptDTO;
 import com.project.chitti.dto.PaymentRequestDTO;
 import com.project.chitti.dto.TransactionDetailsDTO;
 import com.project.chitti.dto.UserAddRequestDTO;
 import com.project.chitti.dto.UserResponseDTO;
 import com.project.chitti.dto.UserSearchResponseDTO;
+import com.project.chitti.entity.ChitLifts;
 import com.project.chitti.entity.ChitMembers;
 import com.project.chitti.entity.Chits;
 import com.project.chitti.entity.Installments;
+import com.project.chitti.entity.LoanInstallments;
+import com.project.chitti.entity.LoanTransactions;
+import com.project.chitti.entity.Loans;
 import com.project.chitti.entity.Transactions;
 import com.project.chitti.entity.Users;
 import com.project.chitti.exceptionHandler.AlreadyExistsException;
 import com.project.chitti.exceptionHandler.BadRequestException;
 import com.project.chitti.exceptionHandler.ResourceNotFoundException;
+import com.project.chitti.repository.ChitLiftRepository;
 import com.project.chitti.repository.ChitMemberRepository;
 import com.project.chitti.repository.ChitRepository;
 import com.project.chitti.repository.InstallmentRepository;
+import com.project.chitti.repository.LoanInstallmentRepository;
+import com.project.chitti.repository.LoanRepository;
+import com.project.chitti.repository.LoanTransactionRepository;
 import com.project.chitti.repository.TransactionRepository;
 import com.project.chitti.repository.UserRepository;
 
@@ -44,7 +60,11 @@ public class AdminService {
 	private final ChitMemberRepository chitMemberRepository ;
 	private final InstallmentRepository installmentRepository;
 	private final TransactionRepository transactionRepository;
-
+	private final ChitLiftRepository chitLiftRepository;
+	private final LoanInstallmentRepository loanInstallmentRepository;
+	private final LoanRepository loanRepository;
+	private final LoanTransactionRepository loanTransactionRepository;
+	
 	
 	public String crateChit(ChitAddRequestDTO chitAddRequestDTO) {
 		
@@ -94,9 +114,9 @@ public class AdminService {
 		Users user = userRepository.findById(userId)
 				.orElseThrow(() -> new ResourceNotFoundException("No memeber found to add in chit: "+ userId));
 		
-		if (chitMemberRepository.existsByUserAndChit(user, chit)) {
-		    throw new RuntimeException("User already joined this chit");
-		}
+//		if (chitMemberRepository.existsByUserAndChit(user, chit)) {
+//		    throw new RuntimeException("User already joined this chit");
+//		}
 		
 		ChitMembers chitMembers = new ChitMembers();
 		chitMembers.setChit(chit);
@@ -258,26 +278,43 @@ public class AdminService {
 
 	public List<InstallmentDetailsDTO> getInstallmentByChitMemberId(Long chitMemberId) {
 		
-		if (!chitMemberRepository.existsById(chitMemberId)) {
+	    if (!chitMemberRepository.existsById(chitMemberId)) {
 	        throw new ResourceNotFoundException("Chit Member record not found with ID: " + chitMemberId);
 	    }
-		
-		
-		List<Installments> installments = installmentRepository.findByChitMemberIdOrderByMonthNumberAsc(chitMemberId);
-		
-		
-		return installments.stream()
-				.map(installment -> InstallmentDetailsDTO.builder()
-						.installmentId(installment.getId())
-						.monthNumber(installment.getMonthNumber())
-						.expectedAmt(installment.getExpectedAmt())
-						.paidAmt(installment.getPaidAmt())
-						.status(installment.getStatus())
-						.build())
-				.toList();
-
+	    
+	    List<Installments> installments = installmentRepository.findByChitMemberIdOrderByMonthNumberAsc(chitMemberId);
+	    
+	    Optional<ChitLifts> memberLiftOpt = chitLiftRepository.findByChitMemberId(chitMemberId);
+	    
+	    return installments.stream()
+	            .map(installment -> {
+	                
+	                boolean isLiftedThisMonth = false;
+	                Long liftAmt = null;
+	                LocalDateTime liftDate = null;
+	                
+	                // 3. Ee exact month lo ne lift chesi unte, data map cheyyi
+	                if (memberLiftOpt.isPresent() && memberLiftOpt.get().getMonthNumber().equals(installment.getMonthNumber())) {
+	                    isLiftedThisMonth = true;
+	                    liftAmt = memberLiftOpt.get().getLiftedAmount();
+	                    liftDate = memberLiftOpt.get().getLiftedOn();
+	                }
+	                
+	                return InstallmentDetailsDTO.builder()
+	                        .installmentId(installment.getId())
+	                        .monthNumber(installment.getMonthNumber())
+	                        .expectedAmt(installment.getExpectedAmt())
+	                        .paidAmt(installment.getPaidAmt())
+	                        .status(installment.getStatus())
+	                        
+	                        // Mapping the new lift fields
+//	                        .isLifted(isLiftedThisMonth)
+	                        .liftedAmount(liftAmt)
+	                        .liftedDate(liftDate)
+	                        .build();
+	            })
+	            .toList();
 	}
-
 
 	
 	public List<TransactionDetailsDTO> getTransactionsByInstId(Long installmentId) {
@@ -318,5 +355,246 @@ public class AdminService {
 	            u.isStatus()
 	    )).collect(Collectors.toList());
 	}
+	
+	
+	
+	
+	public String recordChitLift(ChitLiftRequestDTO dto) {
+	    
 
+		ChitMembers chitMember = chitMemberRepository.findByChitIdAndUserId(dto.getChitId(), dto.getUserId())
+	            .orElseThrow(() -> new ResourceNotFoundException("User is not a member of this chit"));
+
+	    if (chitLiftRepository.existsByChitMemberId(chitMember.getId())) {
+	        throw new BadRequestException("Blunder! This member has already lifted the chit. A member can only lift once.");
+	    }
+
+	    if (chitLiftRepository.existsByChitIdAndMonthNumber(dto.getChitId(), dto.getMonthNumber())) {
+	        throw new BadRequestException("Month " + dto.getMonthNumber() + " has already been lifted by another member in this chit.");
+	    }
+
+	    Long actualLiftedAmount = (dto.getLiftedAmount() != null) ? dto.getLiftedAmount() : 0L;
+
+	    ChitLifts chitLift = new ChitLifts();
+	    chitLift.setChit(chitMember.getChit());
+	    chitLift.setChitMember(chitMember);
+	    chitLift.setMonthNumber(dto.getMonthNumber());
+	    chitLift.setLiftedAmount(actualLiftedAmount);
+//	    chitLift.setLifted(true);;
+	    chitLift.setPaymentMethod(dto.getPaymentMethod());
+	    chitLift.setLiftedOn(java.time.LocalDateTime.now());
+
+	    chitLiftRepository.save(chitLift);
+
+	    return "Success: Chit lifted by " + chitMember.getUser().getName() + " for Month " + dto.getMonthNumber();
+	}
+	
+	
+	
+	public List<MonthlyFilterResponseDTO> getChitMonthReport(Long chitId, Integer monthNumber, String filterType) {
+	    
+	    if (!chitRepository.existsById(chitId)) {
+	        throw new ResourceNotFoundException("Chit not found with ID: " + chitId);
+	    }
+
+	    List<Installments> installments = installmentRepository.findByChitMemberChitIdAndMonthNumber(chitId, monthNumber);
+
+	    // 3. Map to DTO array
+	    return installments.stream()
+	            .filter(inst -> {
+	                if (filterType == null || filterType.equalsIgnoreCase("ALL")) {
+	                    return true;
+	                }
+	                if (filterType.equalsIgnoreCase("PAID")) {
+	                    return inst.getStatus().equals("PAID");
+	                }
+	                if (filterType.equalsIgnoreCase("DUE")) {
+	                    return inst.getStatus().equals("PENDING") || inst.getStatus().equals("PARTIAL");
+	                }
+	                return true; // Default fallback
+	            })
+	            
+	            .map(inst -> {
+	                Long dueAmount = inst.getExpectedAmt() - inst.getPaidAmt();
+	                
+	                return MonthlyFilterResponseDTO.builder()
+	                        .chitId(inst.getChitMember().getChit().getId())
+	                        .chitName(inst.getChitMember().getChit().getName())
+	                        .userId(inst.getChitMember().getUser().getId())
+	                        .memberName(inst.getChitMember().getUser().getName())
+	                        .phoneNo(inst.getChitMember().getUser().getPhoneNo())
+	                        .monthNumber(inst.getMonthNumber())
+	                        .expectedAmt(inst.getExpectedAmt())
+	                        .paidAmt(inst.getPaidAmt())
+	                        .dueAmt(dueAmount)
+	                        .status(inst.getStatus())
+	                        .build();
+	            }).collect(Collectors.toList());
+	    
+	}
+	
+	
+	
+	
+	
+	
+	public String createLoan(LoanCreateRequestDTO dto) {
+	    
+	    // 1. Guardrail Validations
+	    if (dto.getLoanAmount() == null || dto.getLoanAmount() <= 0) {
+	        throw new BadRequestException("Loan amount must be greater than zero");
+	    }
+	    if (dto.getTotalMonths() == null || dto.getTotalMonths() <= 0) {
+	        throw new BadRequestException("Total months must be at least 1");
+	    }
+	    if (dto.getEmiAmount() == null || dto.getEmiAmount() <= 0) {
+	        throw new BadRequestException("EMI amount must be provided and greater than zero");
+	    }
+
+	    Users user = userRepository.findById(dto.getUserId())
+	            .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + dto.getUserId()));
+
+	    // 2. Create the Master Loan Record
+	    Loans loan = new Loans();
+	    loan.setUser(user);
+	    loan.setLoanAmount(dto.getLoanAmount());
+	    loan.setTotalMonths(dto.getTotalMonths());
+	    loan.setEmiAmount(dto.getEmiAmount()); 
+	    loan.setIssuedDate(LocalDateTime.now());
+	    loan.setStatus("ACTIVE");
+	    
+	    Loans savedLoan = loanRepository.save(loan);
+
+	    List<LoanInstallments> installmentsList = new ArrayList<>();
+	    
+	    for (int i = 1; i <= dto.getTotalMonths(); i++) {
+	        LoanInstallments inst = new LoanInstallments();
+	        inst.setLoan(savedLoan);
+	        inst.setMonthNumber(i);
+	        
+	        inst.setExpectedAmt(dto.getEmiAmount()); 
+	        
+	        inst.setPaidAmt(0L);
+	        inst.setStatus("PENDING");
+	        
+	        inst.setDueDate(LocalDateTime.now().plusMonths(i));
+	        
+	        installmentsList.add(inst);
+	    }
+	    
+	    loanInstallmentRepository.saveAll(installmentsList);
+
+	    return "Successfully created loan. Total repayment will be " + (dto.getEmiAmount() * dto.getTotalMonths()) + " over " + dto.getTotalMonths() + " months.";
+	}
+	
+	
+	
+	public List<LoanSummaryResponseDTO> getUserLoans(Long userId) {
+	    
+	    if (!userRepository.existsById(userId)) {
+	        throw new ResourceNotFoundException("User not found with ID: " + userId);
+	    }
+	    
+	    List<Loans> userLoans = loanRepository.findByUserId(userId);
+	    
+	    if (userLoans.isEmpty()) {
+	        throw new ResourceNotFoundException("No loans found for this user");
+	    }
+
+	    // 3. Map to DTO
+	    return userLoans.stream().map(loan -> LoanSummaryResponseDTO.builder()
+	            .loanId(loan.getId())
+	            .loanAmount(loan.getLoanAmount())
+	            .totalMonths(loan.getTotalMonths())
+	            .emiAmount(loan.getEmiAmount())
+	            .issuedDate(loan.getIssuedDate())
+	            .status(loan.getStatus())
+	            .build()
+	    ).collect(Collectors.toList());
+	}
+	
+	
+	
+	public List<LoanInstallmentResponseDTO> getLoanInstallments(Long loanId) {
+		
+	    // 1. Fetch all EMI rows for this loan
+	    List<LoanInstallments> installments = loanInstallmentRepository.findByLoanIdOrderByMonthNumberAsc(loanId);
+	    
+	    if (installments.isEmpty()) {
+	        throw new ResourceNotFoundException("No installments found for Loan ID: " + loanId);
+	    }
+
+	    // 2. Map to DTO so frontend can show the table
+	    return installments.stream().map(inst -> {
+	        Long due = inst.getExpectedAmt() - inst.getPaidAmt();
+	        
+	        return LoanInstallmentResponseDTO.builder()
+	                .installmentId(inst.getId())
+	                .monthNumber(inst.getMonthNumber())
+	                .expectedAmt(inst.getExpectedAmt())
+	                .paidAmt(inst.getPaidAmt())
+	                .dueAmt(due)
+	                .status(inst.getStatus())
+	                .dueDate(inst.getDueDate())
+	                .build();
+	    }).collect(Collectors.toList());
+	}
+
+
+	public List<LoanTransactionResponseDTO> getLoanTransactions(Long installmentId) {
+		
+		if (!loanInstallmentRepository.existsById(installmentId)) {
+	        throw new ResourceNotFoundException("Loan Installment not found with ID: " + installmentId);
+	    }
+
+		List<LoanTransactions> transactions = loanTransactionRepository.findByLoanInstallmentIdOrderByIdAsc(installmentId);
+
+	    return transactions.stream().map(txn -> LoanTransactionResponseDTO.builder()
+	            .transactionId(txn.getId())
+	            .paidAmount(txn.getPaidAmount())
+	            .paymentMethod(txn.getPaymentMethod())
+	            .paidOn(txn.getPaidOn())
+	            .build()
+	    ).collect(Collectors.toList());
+	}
+
+	
+
+	public String payLoan(LoanPaymentRequestDTO dto) {
+		
+		LoanInstallments installment = loanInstallmentRepository.findById(dto.getLoanInstallmentId())
+	            .orElseThrow(() -> new ResourceNotFoundException("Loan EMI not found with ID: " + dto.getLoanInstallmentId()));
+		
+		
+		if (installment.getStatus().equals("PAID")) {
+	        throw new BadRequestException("This EMI is already fully paid.");
+	    }
+
+	    Long paymentAmt = (dto.getAmount() != null) ? dto.getAmount() : 0L;
+	    
+	    if (paymentAmt <= 0) {
+	        throw new BadRequestException("Payment amount must be greater than zero.");
+	    }
+
+	    
+	 // Step A: Insert into Transaction Table
+	    LoanTransactions transaction = new LoanTransactions();
+	    transaction.setLoanInstallment(installment);
+	    transaction.setPaidAmount(paymentAmt);
+	    transaction.setPaymentMethod(dto.getPaymentMethod());
+	    transaction.setPaidOn(LocalDateTime.now());
+	    loanTransactionRepository.save(transaction);
+
+	    Long totalPaidNow = installment.getPaidAmt() + paymentAmt;
+	    installment.setPaidAmt(totalPaidNow);
+
+	    if (totalPaidNow >= installment.getExpectedAmt()) {
+	        installment.setStatus("PAID");
+	    } else {
+	        installment.setStatus("PARTIAL");
+	    }
+	    loanInstallmentRepository.save(installment);
+
+	    return "Successfully processed payment of " + paymentAmt + " for Loan EMI Month " + installment.getMonthNumber();
+	}
 }
