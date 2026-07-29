@@ -4,7 +4,10 @@ import java.util.List;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -93,6 +96,14 @@ public class AdminController {
 	}
 	
 	
+	
+	@PatchMapping("/chit/{chitId}/delete")
+	public String softDelete(@PathVariable Long chitId,
+							@RequestParam boolean status) {
+		
+		return adminService.statusChange(chitId, status);
+	}
+	
 	@GetMapping("/chits/{chitId}/members")
 	public List<ChitMemberDetailsDTO> getChitMembers(@PathVariable Long chitId) {
 		
@@ -151,6 +162,12 @@ public class AdminController {
 	    return adminService.createLoan(dto);
 	}
 	
+//	@PostMapping("/loan/create")
+//	public ResponseEntity<String> createLoan(@RequestBody LoanCreateRequestDTO dto){
+//		
+//		ResponseEntity.status(HttpStatus.CREATED)
+//						.body(adminService.createLoan(dto));.
+//	}
 	
 	@GetMapping("/user/{userId}/loans")
 	public List<LoanSummaryResponseDTO> getLoanBUserId(@PathVariable Long userId){

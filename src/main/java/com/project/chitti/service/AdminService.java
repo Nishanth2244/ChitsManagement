@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.project.chitti.dto.ChitAddRequestDTO;
 import com.project.chitti.dto.ChitLiftRequestDTO;
@@ -106,6 +107,7 @@ public class AdminService {
 	}
 
 
+	@Transactional
 	public String addMember(Long chitId, Long userId) {
 		
 		Chits chit = chitRepository.findById(chitId)
@@ -147,6 +149,7 @@ public class AdminService {
 	}
 	
 	
+	@Transactional
 	public PaymentReceiptDTO processPayment(PaymentRequestDTO dto) {
 	    
 	    // 1. Validate if user is in that chit
@@ -437,7 +440,7 @@ public class AdminService {
 	
 	
 	
-	
+	@Transactional
 	public String createLoan(LoanCreateRequestDTO dto) {
 	    
 	    if (dto.getLoanAmount() == null || dto.getLoanAmount() <= 0) {
@@ -559,6 +562,7 @@ public class AdminService {
 
 	
 
+	@Transactional
 	public String payLoan(LoanPaymentRequestDTO dto) {
 		
 		LoanInstallments installment = loanInstallmentRepository.findById(dto.getLoanInstallmentId())
@@ -596,5 +600,18 @@ public class AdminService {
 	    loanInstallmentRepository.save(installment);
 
 	    return "Successfully processed payment of " + paymentAmt + " for Loan EMI Month " + installment.getMonthNumber();
+	}
+
+
+	
+	public String statusChange(Long chitId, boolean status) {
+		
+		Chits chit = chitRepository.findById(chitId)
+				.orElseThrow(() -> new ResourceNotFoundException("Chit Not found to delete: "+ chitId));
+		
+		chit.setStatus(status);	
+		chitRepository.save(chit);		
+		
+		return "Chit status changed succesfully to: "+ status;
 	}
 }
