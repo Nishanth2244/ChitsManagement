@@ -224,4 +224,12 @@ public class AdminController {
 		
 		return adminService.payLoan(dto);
 	}
+	
+	
+	@PatchMapping("/user/{userId}/delete-account")
+	public String softDeleteUserAcc(@PathVariable Long userId,
+									@RequestParam(defaultValue = "false") boolean status) {
+		
+		return adminService.softDeleteUser(userId, status);
+	}
 }

@@ -784,4 +784,23 @@ public class AdminService {
 		
 		return "Loan details and installments updated successfully.";
 	}
+
+
+	public String softDeleteUser(Long userId, boolean status) {
+
+
+		Users user = userRepository.findById(userId)
+				.orElseThrow(() -> new ResourceNotFoundException("User Not Found to delete Account: "+ userId));
+		
+		List<Loans> userLoans = loanRepository.findByUserIdAndStatus(userId, true);
+	            
+	    if (userLoans == null) {
+	        throw new BadRequestException("Account deletion failed. You have active loans that must be cleared first.");
+	    }
+		
+	    user.setStatus(status);
+	    userRepository.save(user)	    ;
+	    
+		return "User Deleted Succesfully";
+	}
 }
