@@ -13,4 +13,6 @@ public interface LoanInstallmentRepository extends JpaRepository<LoanInstallment
 
 	List<LoanInstallments> findByLoanIdOrderByMonthNumberAsc(Long loanId);
 
+	List<LoanInstallments> findByLoanId(Long loanId);
+
 }

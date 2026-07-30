@@ -15,12 +15,14 @@ import com.project.chitti.dto.ChitAddRequestDTO;
 import com.project.chitti.dto.ChitLiftRequestDTO;
 import com.project.chitti.dto.ChitMemberDetailsDTO;
 import com.project.chitti.dto.ChitResponseDTO;
+import com.project.chitti.dto.ChitUpdateRequestDTO;
 import com.project.chitti.dto.InstallmentDetailsDTO;
 import com.project.chitti.dto.LoanCreateRequestDTO;
 import com.project.chitti.dto.LoanInstallmentResponseDTO;
 import com.project.chitti.dto.LoanPaymentRequestDTO;
 import com.project.chitti.dto.LoanSummaryResponseDTO;
 import com.project.chitti.dto.LoanTransactionResponseDTO;
+import com.project.chitti.dto.LoanUpdateDto;
 import com.project.chitti.dto.MonthlyFilterResponseDTO;
 import com.project.chitti.dto.PaymentReceiptDTO;
 import com.project.chitti.dto.PaymentRequestDTO;
@@ -51,7 +53,10 @@ import com.project.chitti.repository.TransactionRepository;
 import com.project.chitti.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AdminService {
@@ -463,7 +468,7 @@ public class AdminService {
 	    loan.setTotalMonths(dto.getTotalMonths());
 	    loan.setEmiAmount(dto.getEmiAmount()); 
 	    loan.setIssuedDate(LocalDateTime.now());
-	    loan.setStatus("ACTIVE");
+	    loan.setStatus(true);
 	    
 	    Loans savedLoan = loanRepository.save(loan);
 
@@ -491,13 +496,13 @@ public class AdminService {
 	
 	
 	
-	public List<LoanSummaryResponseDTO> getUserLoans(Long userId) {
+	public List<LoanSummaryResponseDTO> getUserLoans(Long userId, boolean status) {
 	    
 	    if (!userRepository.existsById(userId)) {
 	        throw new ResourceNotFoundException("User not found with ID: " + userId);
 	    }
 	    
-	    List<Loans> userLoans = loanRepository.findByUserId(userId);
+	    List<Loans> userLoans = loanRepository.findByUserIdAndStatus(userId, status);
 	    
 	    if (userLoans.isEmpty()) {
 	        throw new ResourceNotFoundException("No loans found for this user");
@@ -510,7 +515,7 @@ public class AdminService {
 	            .totalMonths(loan.getTotalMonths())
 	            .emiAmount(loan.getEmiAmount())
 	            .issuedDate(loan.getIssuedDate())
-	            .status(loan.getStatus())
+	            .status(loan.isStatus())
 	            .build()
 	    ).collect(Collectors.toList());
 	}
@@ -613,5 +618,170 @@ public class AdminService {
 		chitRepository.save(chit);		
 		
 		return "Chit status changed succesfully to: "+ status;
+	}
+
+
+	@Transactional
+	public String updateChitDetails(Long chitId, ChitUpdateRequestDTO dto) {
+	    
+	    Chits chit = chitRepository.findById(chitId)
+	            .orElseThrow(() -> new ResourceNotFoundException("Chit not found with ID: " + chitId));
+	    
+	    Long oldTotalMonths = chit.getTotalMonths();
+	    Long oldInstallmentAmt = chit.getInstallmentAmt();
+	    
+	    // 1. THE FIX: Resolve actual new values (fallback to old DB value if DTO is null)
+	    Long newTotalMonths = dto.getTotalMonths() != null ? dto.getTotalMonths() : oldTotalMonths;
+	    Long newInstallmentAmt = dto.getInstallmentAmt() != null ? dto.getInstallmentAmt() : oldInstallmentAmt;
+
+	    // 2. Update Master Chit Table
+	    if (dto.getChitName() != null) {
+	        chit.setName(dto.getChitName());
+	    }
+	    if (dto.getTotalAmount() != null) {
+	        chit.setTotalAmount(dto.getTotalAmount());	    	
+	    }
+	    chit.setTotalMonths(newTotalMonths);
+	    chit.setInstallmentAmt(newInstallmentAmt);
+	    
+	    chitRepository.save(chit);
+	    
+	    // 3. SAFE FLAG CHECKS: Now we compare non-null values
+	    boolean isAmountChanged = !oldInstallmentAmt.equals(newInstallmentAmt);
+	    boolean isMonthsChanged = !oldTotalMonths.equals(newTotalMonths);
+	    
+	    if (isAmountChanged || isMonthsChanged) {
+	        
+	        List<ChitMembers> members = chitMemberRepository.findByChitId(chitId);
+	        
+	        for (ChitMembers member : members) {
+	            List<Installments> existingInstallments = installmentRepository.findByChitMemberIdOrderByMonthNumberAsc(member.getId());
+
+	            // A. UPDATE AMOUNT
+	            if (isAmountChanged) {
+	                for (Installments inst : existingInstallments) {
+	                    inst.setExpectedAmt(newInstallmentAmt); // Safe variable used
+	                }
+	                installmentRepository.saveAll(existingInstallments);
+	            }
+
+	            // B. DELETE EXTRA MONTHS
+	            if (newTotalMonths < oldTotalMonths) { // Safe variable used
+	                List<Installments> toDelete = existingInstallments.stream()
+	                        .filter(inst -> inst.getMonthNumber() > newTotalMonths) // Safe variable used
+	                        .collect(Collectors.toList());
+	                
+	                installmentRepository.deleteAll(toDelete);
+	            }
+
+	            // C. ADD NEW MONTHS
+	            if (newTotalMonths > oldTotalMonths) { // Safe variable used
+	                List<Installments> newInstallments = new ArrayList<>();
+	                for (long i = oldTotalMonths + 1; i <= newTotalMonths; i++) { // Safe variable used
+	                    Installments inst = new Installments();
+	                    inst.setChitMember(member);
+	                    inst.setMonthNumber((int) i);
+	                    inst.setExpectedAmt(newInstallmentAmt); // Safe variable used
+	                    inst.setPaidAmt(0L);
+	                    inst.setStatus("PENDING");
+	                    newInstallments.add(inst);
+	                }
+	                installmentRepository.saveAll(newInstallments);
+	            }
+	        }
+	    }
+
+	    log.info("Chit updation completed and installment will updated depend on instal amt and months");
+	    return "Chit and its dependent installments updated successfully.";
+	}
+
+
+	public String softDeleteLoan(Long loanId, boolean status) {
+		
+		Loans loan = loanRepository.findById(loanId)
+				.orElseThrow(() -> new ResourceNotFoundException("Loan not found to delete: "+ loanId));
+		
+		
+		loan.setStatus(status);
+		loanRepository.save(loan);
+		
+		log.info("Loan status changed succesfully: {}", status);
+		
+		return "Loan "+status+" Succesfully";
+	}
+
+
+	
+	@Transactional
+	public String loanDetailsUpdate(Long loanId, LoanUpdateDto dto) {
+		
+		Loans loan = loanRepository.findById(loanId)
+				.orElseThrow(() -> new ResourceNotFoundException("Loan not found to update Details: "+ loanId));
+		
+		Long oldEmiAmount = loan.getEmiAmount();
+		Long oldTotalMonths = loan.getTotalMonths();
+		
+		Long newEmiAmount = dto.getEmiAmount() != null ? dto.getEmiAmount() : oldEmiAmount;
+		Long newTotalMonths = dto.getTotalMonths() != null ? dto.getTotalMonths() : oldTotalMonths;
+		
+		
+		if(dto.getLoanAmount() != null) {
+			loan.setLoanAmount(dto.getLoanAmount());	
+		}
+		
+		loan.setEmiAmount(newEmiAmount);	
+		loan.setTotalMonths(newTotalMonths);
+		
+		loanRepository.save(loan);
+		
+		boolean isEmiAmountChanged = !oldEmiAmount.equals(newEmiAmount);
+		boolean isNewTotalMonths = !oldTotalMonths.equals(newTotalMonths);	
+		
+		if(isEmiAmountChanged || isNewTotalMonths) {
+			
+			List<LoanInstallments> loanInstallments = loanInstallmentRepository.findByLoanId(loanId);
+			
+			if(isEmiAmountChanged) {
+				
+				for(LoanInstallments lanInstallments : loanInstallments) {
+					lanInstallments.setExpectedAmt(newEmiAmount);
+				}
+				loanInstallmentRepository.saveAll(loanInstallments);				
+			}
+			
+			
+			if(newTotalMonths < oldTotalMonths) {
+	            List<LoanInstallments> toDelete = loanInstallments.stream()
+	            		.filter(loanInst -> loanInst.getMonthNumber() > newTotalMonths)
+	            		.collect(Collectors.toList());
+	            
+	            loanInstallmentRepository.deleteAll(toDelete);
+	            
+			}
+			
+			if(newTotalMonths > oldTotalMonths) {
+				
+				List<LoanInstallments> addRows = new ArrayList<>();
+				
+				for (long i = oldTotalMonths +1; i <= newTotalMonths; i++) {
+					LoanInstallments inst = new LoanInstallments();
+	                inst.setLoan(loan);
+	                inst.setMonthNumber((int) i);
+	                inst.setExpectedAmt(newEmiAmount);
+	                inst.setPaidAmt(0L);
+	                inst.setStatus("PENDING");
+	                inst.setDueDate(loan.getIssuedDate().plusMonths(i));
+	                
+	                addRows.add(inst);
+	                
+				}
+				
+				loanInstallmentRepository.saveAll(addRows);
+				
+			}
+			
+		}
+		
+		return "Loan details and installments updated successfully.";
 	}
 }

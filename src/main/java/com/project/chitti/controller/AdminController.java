@@ -19,12 +19,14 @@ import com.project.chitti.dto.ChitAddRequestDTO;
 import com.project.chitti.dto.ChitLiftRequestDTO;
 import com.project.chitti.dto.ChitMemberDetailsDTO;
 import com.project.chitti.dto.ChitResponseDTO;
+import com.project.chitti.dto.ChitUpdateRequestDTO;
 import com.project.chitti.dto.InstallmentDetailsDTO;
 import com.project.chitti.dto.LoanCreateRequestDTO;
 import com.project.chitti.dto.LoanInstallmentResponseDTO;
 import com.project.chitti.dto.LoanPaymentRequestDTO;
 import com.project.chitti.dto.LoanSummaryResponseDTO;
 import com.project.chitti.dto.LoanTransactionResponseDTO;
+import com.project.chitti.dto.LoanUpdateDto;
 import com.project.chitti.dto.MonthlyFilterResponseDTO;
 import com.project.chitti.dto.PaymentReceiptDTO;
 import com.project.chitti.dto.PaymentRequestDTO;
@@ -51,6 +53,14 @@ public class AdminController {
 	public String createChit(@RequestBody ChitAddRequestDTO chitAddRequestDTO) {
 		
 		return adminService.crateChit(chitAddRequestDTO);
+	}
+	
+	
+	@PatchMapping("/chit/{chitId}/update")
+	public String updateChit(@PathVariable Long chitId,
+							@RequestBody ChitUpdateRequestDTO dto) {
+		
+		return adminService.updateChitDetails(chitId, dto);
 	}
 	
 	
@@ -169,10 +179,29 @@ public class AdminController {
 //						.body(adminService.createLoan(dto));.
 //	}
 	
-	@GetMapping("/user/{userId}/loans")
-	public List<LoanSummaryResponseDTO> getLoanBUserId(@PathVariable Long userId){
+	
+	
+	@PatchMapping("/loan/{loanId}/delete")
+	public String softDeleteLoan(@PathVariable Long loanId,
+								@RequestParam boolean status) {
 		
-		return adminService.getUserLoans(userId);
+		return adminService.softDeleteLoan(loanId, status);
+	}
+	
+	
+	@PatchMapping("/loan/{loanId}/update")
+	public String loanUpdateDetails(@PathVariable Long loanId,
+									@RequestBody LoanUpdateDto dto) {
+		
+		return adminService.loanDetailsUpdate(loanId, dto);
+	}
+	
+	
+	@GetMapping("/user/{userId}/loans")
+	public List<LoanSummaryResponseDTO> getLoanBUserId(@PathVariable Long userId,
+														@RequestParam (defaultValue = "true") boolean status){
+		
+		return adminService.getUserLoans(userId, status);
 	}
 	
 	

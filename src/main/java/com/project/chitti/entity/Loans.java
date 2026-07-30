@@ -25,5 +25,5 @@ public class Loans {
     private Long emiAmount; 
     
     private LocalDateTime issuedDate;
-    private String status; // "ACTIVE" or "CLOSED"
+    private boolean status; 
 }

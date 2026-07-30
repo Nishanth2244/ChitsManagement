@@ -10,6 +10,6 @@ import com.project.chitti.entity.Loans;
 @Repository
 public interface LoanRepository extends JpaRepository<Loans, Long> {
 
-	List<Loans> findByUserId(Long userId);
+	List<Loans> findByUserIdAndStatus(Long userId, boolean status);
 
 }
