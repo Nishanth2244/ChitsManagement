@@ -267,7 +267,7 @@ public class AdminService {
 	        throw new ResourceNotFoundException("Chit not found with id: " + chitId);
 	    }
 		
-		List<ChitMembers> members = chitMemberRepository.findByChitIdAndUserId(chitId, true);
+		List<ChitMembers> members = chitMemberRepository.findByChitIdAndStatus(chitId, true);
 		
 		
 		return members.stream()
