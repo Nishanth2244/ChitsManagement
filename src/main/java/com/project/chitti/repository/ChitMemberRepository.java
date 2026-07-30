@@ -19,4 +19,6 @@ public interface ChitMemberRepository extends JpaRepository<ChitMembers, Long> {
 
 	boolean existsByUserAndChit(Users user, Chits chit);
 
+	List<ChitMembers> findByChitIdAndUserId(Long chitId, boolean b);
+
 }

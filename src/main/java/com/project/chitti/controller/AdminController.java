@@ -166,6 +166,12 @@ public class AdminController {
 		return adminService.getChitMonthReport(chitId, monthnumber, filterType);
 	}
 	
+	@PatchMapping("/user/chit/{chitMemberId}/remove")
+	public String removeUserFromChit(@PathVariable Long chitMemberId) {
+		
+		return adminService.removeUserFromChit(chitMemberId);
+	}
+
 	
 	@PostMapping("/loan/create")
 	public String createLoan(@RequestBody LoanCreateRequestDTO dto) {
@@ -232,4 +238,8 @@ public class AdminController {
 		
 		return adminService.softDeleteUser(userId, status);
 	}
+		
+	
+	
+	
 }

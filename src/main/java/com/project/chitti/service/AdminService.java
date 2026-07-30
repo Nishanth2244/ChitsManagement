@@ -267,7 +267,7 @@ public class AdminService {
 	        throw new ResourceNotFoundException("Chit not found with id: " + chitId);
 	    }
 		
-		List<ChitMembers> members = chitMemberRepository.findByChitId(chitId);
+		List<ChitMembers> members = chitMemberRepository.findByChitIdAndUserId(chitId, true);
 		
 		
 		return members.stream()
@@ -409,6 +409,7 @@ public class AdminService {
 
 	    // 3. Map to DTO array
 	    return installments.stream()
+	    		.filter(inst -> inst.getChitMember().isStatus())
 	            .filter(inst -> {
 	                if (filterType == null || filterType.equalsIgnoreCase("ALL")) {
 	                    return true;
@@ -802,5 +803,26 @@ public class AdminService {
 	    userRepository.save(user)	    ;
 	    
 		return "User Deleted Succesfully";
+	}
+
+
+	public String removeUserFromChit(Long chitMemberId) {
+		
+		ChitMembers chitMember = chitMemberRepository.findById(chitMemberId).
+				orElseThrow(() -> new ResourceNotFoundException("Chit member Not found to remove from chit: "+ chitMemberId));
+				
+		
+		chitMember.setStatus(false);	
+		chitMemberRepository.save(chitMember);
+		
+//		List<Installments> allInstallments = installmentRepository.findByChitMemberIdOrderByMonthNumberAsc(chitMemberId);
+//	    
+//	    List<Installments> pendingToCancel = allInstallments.stream()
+//	            .filter(inst -> inst.getPaidAmt() == 0 && inst.getStatus().equals("PENDING"))
+//	            .collect(Collectors.toList());
+//	            
+//	    installmentRepository.deleteAll(pendingToCancel);
+//		
+		return "User removed from the chit Succesfully";
 	}
 }
