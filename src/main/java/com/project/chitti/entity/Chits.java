@@ -1,5 +1,6 @@
 package com.project.chitti.entity;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -25,7 +26,7 @@ public class Chits {
 	private Long installmentAmt;
 	private boolean status;
 	private LocalDateTime createdAt;
-	
+	private LocalDate startDate;
 	
 //	@OneToMany(mappedBy = "chit")
 //	private List<ChitMembers> chitMembers;

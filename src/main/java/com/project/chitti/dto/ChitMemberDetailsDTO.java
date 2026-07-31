@@ -14,6 +14,7 @@ public class ChitMemberDetailsDTO {
     private Long chitMemberId;
     private Long userId;
     private String name;
+    private String careOf;
     private String phoneNo;
     private LocalDateTime joinedAt;
     private boolean status;

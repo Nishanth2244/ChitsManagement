@@ -8,6 +8,7 @@ import lombok.Data;
 public class UserSearchResponseDTO {
     private Long id;
     private String name;
+    private String careOf;
     private String phoneNo;
     private String address;
     private boolean status;

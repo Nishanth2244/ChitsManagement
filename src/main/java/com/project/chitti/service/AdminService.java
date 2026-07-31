@@ -1,5 +1,6 @@
 package com.project.chitti.service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -80,6 +81,7 @@ public class AdminService {
 		
 		Chits chits = new Chits();
 		chits.setCreatedAt(LocalDateTime.now());
+		chits.setStartDate(chitAddRequestDTO.getStartDate() != null ? chitAddRequestDTO.getStartDate() : LocalDate.now());
 		chits.setInstallmentAmt(chitAddRequestDTO.getInstallmentAmt());
 		chits.setName(chitAddRequestDTO.getChitName());
 		chits.setStatus(true);
@@ -102,6 +104,7 @@ public class AdminService {
 		user.setAddress(dto.getAddress());
 		user.setCreatedAt(LocalDateTime.now());
 		user.setName(dto.getName());
+		user.setCareOf(dto.getCareOf());
 		user.setPhoneNo(dto.getPhoneNo());
 		user.setRole("USER");
 		user.setStatus(true);
@@ -230,6 +233,7 @@ public class AdminService {
 						.totalMonths(chit.getTotalMonths())
 						.installmentAmt(chit.getInstallmentAmt())
 						.status(chit.isStatus())
+						.startDate(chit.getStartDate())
 						.createdAt(chit.getCreatedAt())
 						.build())
 				.toList();
@@ -251,6 +255,7 @@ public class AdminService {
 				.map(user -> UserResponseDTO.builder()
 						.id(user.getId())
 						.name(user.getName())
+						.careOf(user.getCareOf())
 						.phoneNo(user.getPhoneNo())
 						.address(user.getAddress())
 						.status(user.isStatus())
@@ -275,6 +280,7 @@ public class AdminService {
 		                .chitMemberId(member.getId())
 		                .userId(member.getUser().getId())
 		                .name(member.getUser().getName())
+		                .careOf(member.getUser().getCareOf())
 		                .phoneNo(member.getUser().getPhoneNo())
 		                .joinedAt(member.getJoinedAt())
 		                .status(member.isStatus())
@@ -358,6 +364,7 @@ public class AdminService {
 	    return users.stream().map(u -> new UserSearchResponseDTO(
 	            u.getId(),
 	            u.getName(),
+	            u.getCareOf(),
 	            u.getPhoneNo(),
 	            u.getAddress(),
 	            u.isStatus()

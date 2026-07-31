@@ -17,6 +17,7 @@ public class UserResponseDTO {
 	
 	private Long id;
 	private String name;
+	private String careOf;
 	private String phoneNo;
 	private String address;
 	private boolean status;

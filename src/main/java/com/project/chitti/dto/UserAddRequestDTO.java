@@ -8,4 +8,5 @@ public class UserAddRequestDTO {
 	private String name;
 	private String phoneNo;
 	private String address;
+	private String careOf;
 }

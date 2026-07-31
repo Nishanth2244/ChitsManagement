@@ -1,5 +1,6 @@
 package com.project.chitti.dto;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import lombok.AllArgsConstructor;
@@ -21,5 +22,6 @@ public class ChitResponseDTO {
 	private Long installmentAmt;
 	private boolean status;
 	private LocalDateTime createdAt;
+	private LocalDate startDate;
 
 }
