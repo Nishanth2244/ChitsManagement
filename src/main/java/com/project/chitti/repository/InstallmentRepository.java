@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import com.project.chitti.entity.Chits;
 import com.project.chitti.entity.Installments;
 
 @Repository
@@ -16,4 +17,6 @@ public interface InstallmentRepository extends JpaRepository<Installments, Long>
 	List<Installments> findByChitMemberIdOrderByMonthNumberAsc(Long chitMemberId);
 	
 	List<Installments> findByChitMemberChitIdAndMonthNumber(Long chitId, Integer monthNumber);
+
+//	Optional<Installments> findByIdChitMemberIdAndMonthNumber(Long installmentId, Long id, Integer monthNumber);
 }

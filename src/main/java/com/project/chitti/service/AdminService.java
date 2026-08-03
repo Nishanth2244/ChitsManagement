@@ -161,21 +161,19 @@ public class AdminService {
 	@Transactional
 	public PaymentReceiptDTO processPayment(PaymentRequestDTO dto) {
 	    
-	    // 1. Validate if user is in that chit
-	    ChitMembers chitMember = chitMemberRepository.findByChitIdAndUserId(dto.getChitId(), dto.getUserId())
-	            .orElseThrow(() -> new ResourceNotFoundException("User is not a member of this chit"));
-
+	    // 1. Fetch exact ChitMember directly using Primary Key (No duplicate row issues here)
+	    ChitMembers chitMember = chitMemberRepository.findById(dto.getChitMemberId())
+	            .orElseThrow(() -> new ResourceNotFoundException("Chit member not found with ID: " + dto.getChitMemberId()));
 	    
-	    // 2. Fetch the exact month selected by the admin
+	    // 2. Fetch the exact month selected by the admin for THIS specific membership
 	    Installments selectedInstallment = installmentRepository
 	            .findByChitMemberIdAndMonthNumber(chitMember.getId(), dto.getMonthNumber())
-	            .orElseThrow(() -> new ResourceNotFoundException("Invalid month number for this chit"));
+	            .orElseThrow(() -> new ResourceNotFoundException("Invalid month number for this chit member"));
 
 	    Long actualAmount = (dto.getAmount() != null) ? dto.getAmount() : 0L;
 	    Long actualFine = (dto.getFineAmount() != null) ? dto.getFineAmount() : 0L;
 	    
-	    
-//	    3. create a trasaction of that installment.
+	    // 3. create a transaction of that installment.
 	    Transactions transactions = new Transactions();
 	    transactions.setInstallment(selectedInstallment);
 	    transactions.setPaidAmount(actualAmount);	
@@ -185,38 +183,34 @@ public class AdminService {
 	    
 	    Transactions savedTransaction = transactionRepository.save(transactions);
 	    
-//	    4.Update the installment paid Amt.
+	    // 4. Update the installment paid Amt.
 	    Long totalPaidAfterThis = selectedInstallment.getPaidAmt() + actualAmount;
 	    selectedInstallment.setPaidAmt(totalPaidAfterThis);
 	    
-	    
-	 // 5. Status update
+	    // 5. Status update
 	    if (totalPaidAfterThis >= selectedInstallment.getExpectedAmt()) {
 	        selectedInstallment.setStatus("PAID");
 	    } else {
 	        selectedInstallment.setStatus("PARTIAL");
 	    }
 	    
-	    
 	    installmentRepository.save(selectedInstallment);
 
 	    return PaymentReceiptDTO.builder()
-	    		.transactionId(savedTransaction.getId())
-	    		.chitName(chitMember.getChit().getName())
-	    		.memberName(chitMember.getUser().getName())
-	    		.phoneNo(chitMember.getUser().getPhoneNo())
-	    		.monthNumber(selectedInstallment.getMonthNumber())
-	    		.paidAmount(actualAmount)
-	    		.fineAmount(actualFine)
+	            .transactionId(savedTransaction.getId())
+	            .chitName(chitMember.getChit().getName())
+	            .memberName(chitMember.getUser().getName())
+	            .phoneNo(chitMember.getUser().getPhoneNo())
+	            .monthNumber(selectedInstallment.getMonthNumber())
+	            .paidAmount(actualAmount)
+	            .fineAmount(actualFine)
 	            .paymentMethod(dto.getPaymentMethod())
 	            .paidOn(savedTransaction.getPaidOn())
 	            .monthExpectedAmount(selectedInstallment.getExpectedAmt())
 	            .monthBalanceDue(selectedInstallment.getExpectedAmt() - selectedInstallment.getPaidAmt())
 	            .installmentStatus(selectedInstallment.getStatus())
 	            .build();
-	    
 	}
-
 
 	public List<ChitResponseDTO> getAllChits(Pageable pageable, boolean status) {
 		
@@ -381,28 +375,33 @@ public class AdminService {
 	
 	
 	
+	@Transactional 
 	public String recordChitLift(ChitLiftRequestDTO dto) {
 	    
 
-		ChitMembers chitMember = chitMemberRepository.findByChitIdAndUserId(dto.getChitId(), dto.getUserId())
-	            .orElseThrow(() -> new ResourceNotFoundException("User is not a member of this chit"));
+		ChitMembers chitMember = chitMemberRepository.findById(dto.getChitMemberId())
+	            .orElseThrow(() -> new ResourceNotFoundException("Chit member not found with ID: " + dto.getChitMemberId()));
 
+
+		Long chitId = chitMember.getChit().getId();
+
+	    // 3. Validations
 	    if (chitLiftRepository.existsByChitMemberId(chitMember.getId())) {
-	        throw new BadRequestException("Blunder! This member has already lifted the chit. A member can only lift once.");
+	        throw new BadRequestException("Blunder! This specific membership ticket has already lifted the chit.");
 	    }
 
-	    if (chitLiftRepository.existsByChitIdAndMonthNumber(dto.getChitId(), dto.getMonthNumber())) {
+	    if (chitLiftRepository.existsByChitIdAndMonthNumber(chitId, dto.getMonthNumber())) {
 	        throw new BadRequestException("Month " + dto.getMonthNumber() + " has already been lifted by another member in this chit.");
 	    }
 
 	    Long actualLiftedAmount = (dto.getLiftedAmount() != null) ? dto.getLiftedAmount() : 0L;
 
+	    // 4. Save Logic
 	    ChitLifts chitLift = new ChitLifts();
 	    chitLift.setChit(chitMember.getChit());
 	    chitLift.setChitMember(chitMember);
 	    chitLift.setMonthNumber(dto.getMonthNumber());
 	    chitLift.setLiftedAmount(actualLiftedAmount);
-//	    chitLift.setLifted(true);;
 	    chitLift.setPaymentMethod(dto.getPaymentMethod());
 	    chitLift.setLiftedOn(java.time.LocalDateTime.now());
 
@@ -410,7 +409,6 @@ public class AdminService {
 
 	    return "Success: Chit lifted by " + chitMember.getUser().getName() + " for Month " + dto.getMonthNumber();
 	}
-	
 	
 	
 	public List<MonthlyFilterResponseDTO> getChitMonthReport(Long chitId, Integer monthNumber, String filterType) {
