@@ -24,4 +24,5 @@ public class InstallmentDetailsDTO {
 //    private boolean isLifted; 
     private Long liftedAmount;
     private LocalDateTime liftedDate;
+    private String careof;
 }

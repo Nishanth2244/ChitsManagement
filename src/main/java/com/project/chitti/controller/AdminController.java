@@ -131,9 +131,10 @@ public class AdminController {
 	
 	
 	@GetMapping("/installments/{installmentId}/transactions")
-	public List<TransactionDetailsDTO> getInstallmentTransactions(@PathVariable Long installmentId){
+	public List<TransactionDetailsDTO> getInstallmentTransactions(@PathVariable Long installmentId,
+																@RequestParam Long chitMemberId){
 		
-		return adminService.getTransactionsByInstId(installmentId);
+		return adminService.getTransactionsByInstId(installmentId, chitMemberId);
 	}
 	
 	

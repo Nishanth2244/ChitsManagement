@@ -293,10 +293,13 @@ public class AdminService {
 
 	public List<InstallmentDetailsDTO> getInstallmentByChitMemberId(Long chitMemberId) {
 		
-	    if (!chitMemberRepository.existsById(chitMemberId)) {
-	        throw new ResourceNotFoundException("Chit Member record not found with ID: " + chitMemberId);
-	    }
-	    
+//	    if (!chitMemberRepository.existsById(chitMemberId)) {
+//	        throw new ResourceNotFoundException("Chit Member record not found with ID: " + chitMemberId);
+//	    }
+		
+		ChitMembers chitMember = chitMemberRepository.findById(chitMemberId)
+				.orElseThrow(() -> new ResourceNotFoundException("Chit Member record not found with ID: " + chitMemberId));
+		
 	    List<Installments> installments = installmentRepository.findByChitMemberIdOrderByMonthNumberAsc(chitMemberId);
 	    
 	    Optional<ChitLifts> memberLiftOpt = chitLiftRepository.findByChitMemberId(chitMemberId);
@@ -326,18 +329,20 @@ public class AdminService {
 //	                        .isLifted(isLiftedThisMonth)
 	                        .liftedAmount(liftAmt)
 	                        .liftedDate(liftDate)
+	                        .careof(chitMember.getCareOf())
 	                        .build();
 	            })
 	            .toList();
 	}
 
 	
-	public List<TransactionDetailsDTO> getTransactionsByInstId(Long installmentId) {
+	public List<TransactionDetailsDTO> getTransactionsByInstId(Long installmentId, Long chitMemberId) {
 		
 		if (!installmentRepository.existsById(installmentId)) {
 	        throw new ResourceNotFoundException("Installment record not found with ID: " + installmentId);
 	    }
 
+		Optional<ChitMembers> chitMember = chitMemberRepository.findById(chitMemberId);
 		
 		List<Transactions> transactions = transactionRepository.findByInstallmentIdOrderByIdAsc(installmentId);
 
@@ -348,6 +353,7 @@ public class AdminService {
 						.fineAmount(transaction.getFineAmount())
 						.paymentMethod(transaction.getPaymentMethod())
 						.paidOn(transaction.getPaidOn())
+						.careOf(chitMember.get().getCareOf())
 						.build())
 				.toList();
 	}
