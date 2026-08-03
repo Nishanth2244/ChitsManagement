@@ -116,7 +116,7 @@ public class AdminService {
 
 
 	@Transactional
-	public String addMember(Long chitId, Long userId, String careOf) {
+	public String addMember(Long chitId, Long userId, String careOf, LocalDate joinedDate) {
 		
 		Chits chit = chitRepository.findById(chitId)
 				.orElseThrow(() -> new ResourceNotFoundException("No chit found to add member: "+ chitId));
@@ -132,7 +132,7 @@ public class AdminService {
 		chitMembers.setChit(chit);
 		chitMembers.setUser(user);
 		chitMembers.setCareOf(careOf);
-		chitMembers.setJoinedAt(LocalDateTime.now());
+		chitMembers.setJoinedAt(joinedDate);
 		chitMembers.setStatus(true);
 
 		ChitMembers savedMember = chitMemberRepository.save(chitMembers);

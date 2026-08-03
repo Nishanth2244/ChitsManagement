@@ -1,5 +1,6 @@
 package com.project.chitti.dto;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,6 +17,6 @@ public class ChitMemberDetailsDTO {
     private String name;
     private String careOf;
     private String phoneNo;
-    private LocalDateTime joinedAt;
+    private LocalDate joinedAt;
     private boolean status;
 }

@@ -1,5 +1,6 @@
 package com.project.chitti.entity;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Entity;
@@ -29,7 +30,7 @@ public class ChitMembers {
 	
 	private String careOf;
 	
-	private LocalDateTime joinedAt;
+	private LocalDate joinedAt;
 	
 	private boolean status;
 

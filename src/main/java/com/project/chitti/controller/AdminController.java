@@ -1,5 +1,6 @@
 package com.project.chitti.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.domain.PageRequest;
@@ -74,9 +75,10 @@ public class AdminController {
 	@PostMapping("/chit/addMember")
 	public String addMember(@RequestParam Long chitId,
 							@RequestParam Long userId,
-							@RequestParam (required = false) String careOf) {
+							@RequestParam (required = false) String careOf,
+							@RequestParam (required = false) LocalDate joinedDate) {
 		
-		return adminService.addMember(chitId, userId, careOf);
+		return adminService.addMember(chitId, userId, careOf, joinedDate);
 	}
 	
 	@PostMapping("/chit/pay")
