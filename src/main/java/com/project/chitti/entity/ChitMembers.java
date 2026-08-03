@@ -27,6 +27,8 @@ public class ChitMembers {
 	@JoinColumn(name = "user_id")
 	private Users user;
 	
+	private String careOf;
+	
 	private LocalDateTime joinedAt;
 	
 	private boolean status;
