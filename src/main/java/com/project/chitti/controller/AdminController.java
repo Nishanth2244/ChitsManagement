@@ -74,7 +74,7 @@ public class AdminController {
 	@PostMapping("/chit/addMember")
 	public String addMember(@RequestParam Long chitId,
 							@RequestParam Long userId,
-							@RequestParam String careOf) {
+							@RequestParam (required = false) String careOf) {
 		
 		return adminService.addMember(chitId, userId, careOf);
 	}
