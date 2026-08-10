@@ -286,49 +286,50 @@ public class AdminService {
 
 
 	public List<InstallmentDetailsDTO> getInstallmentByChitMemberId(Long chitMemberId) {
-		
-//	    if (!chitMemberRepository.existsById(chitMemberId)) {
-//	        throw new ResourceNotFoundException("Chit Member record not found with ID: " + chitMemberId);
-//	    }
-		
-		ChitMembers chitMember = chitMemberRepository.findById(chitMemberId)
-				.orElseThrow(() -> new ResourceNotFoundException("Chit Member record not found with ID: " + chitMemberId));
-		
-	    List<Installments> installments = installmentRepository.findByChitMemberIdOrderByMonthNumberAsc(chitMemberId);
-	    
-	    Optional<ChitLifts> memberLiftOpt = chitLiftRepository.findByChitMemberId(chitMemberId);
-	    
-	    return installments.stream()
-	            .map(installment -> {
-	                
-	                boolean isLiftedThisMonth = false;
-	                Long liftAmt = null;
-	                LocalDate liftDate = null;
-	                
-	                // 3. Mapping exact which month he lifted the chit
-	                if (memberLiftOpt.isPresent() && memberLiftOpt.get().getMonthNumber().equals(installment.getMonthNumber())) {
-	                    isLiftedThisMonth = true;
-	                    liftAmt = memberLiftOpt.get().getLiftedAmount();
-	                    liftDate = memberLiftOpt.get().getLiftedDate();
-	                }
-	                
-	                return InstallmentDetailsDTO.builder()
-	                        .installmentId(installment.getId())
-	                        .monthNumber(installment.getMonthNumber())
-	                        .expectedAmt(installment.getExpectedAmt())
-	                        .paidAmt(installment.getPaidAmt())
-	                        .status(installment.getStatus())
-	                        
-	                        // Mapping the new lift fields
-//	                        .isLifted(isLiftedThisMonth)
-	                        .liftedAmount(liftAmt)
-	                        .liftedDate(liftDate)
-	                        .careof(chitMember.getCareOf())
-	                        .build();
-	            })
-	            .toList();
-	}
 
+		ChitMembers chitMember = chitMemberRepository.findById(chitMemberId)
+				.orElseThrow(() ->
+						new ResourceNotFoundException(
+								"Chit Member record not found with ID: " + chitMemberId));
+
+		List<Installments> installments =
+				installmentRepository.findByChitMemberIdOrderByMonthNumberAsc(chitMemberId);
+
+		Optional<ChitLifts> memberLiftOpt =
+				chitLiftRepository.findByChitMemberId(chitMemberId);
+
+		return installments.stream()
+				.map(installment -> {
+
+					Long liftAmt = null;
+					LocalDate liftDate = null;
+
+					// Check the month in which this member lifted
+					if (memberLiftOpt.isPresent()
+							&& memberLiftOpt.get()
+							.getMonthNumber()
+							.equals(installment.getMonthNumber())) {
+
+						liftAmt = memberLiftOpt.get().getLiftedAmount();
+
+						liftDate = memberLiftOpt.get().getLiftedDate();
+					}
+
+					return InstallmentDetailsDTO.builder()
+							.installmentId(installment.getId())
+							.monthNumber(installment.getMonthNumber())
+							.expectedAmt(installment.getExpectedAmt())
+							.paidAmt(installment.getPaidAmt())
+							.status(installment.getStatus())
+
+							.liftedAmount(liftAmt)
+							.liftedDate(liftDate)
+
+							.careof(chitMember.getCareOf())
+							.build();
+				})
+				.toList();
+	}
 	
 	public List<TransactionDetailsDTO> getTransactionsByInstId(Long installmentId, Long chitMemberId) {
 		
