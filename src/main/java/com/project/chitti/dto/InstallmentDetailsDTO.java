@@ -1,5 +1,6 @@
 package com.project.chitti.dto;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -23,6 +24,6 @@ public class InstallmentDetailsDTO {
     
 //    private boolean isLifted; 
     private Long liftedAmount;
-    private LocalDateTime liftedDate;
+    private LocalDate liftedDate;
     private String careof;
 }

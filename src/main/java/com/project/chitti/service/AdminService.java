@@ -303,13 +303,13 @@ public class AdminService {
 	                
 	                boolean isLiftedThisMonth = false;
 	                Long liftAmt = null;
-	                LocalDateTime liftDate = null;
+	                LocalDate liftDate = null;
 	                
 	                // 3. Mapping exact which month he lifted the chit
 	                if (memberLiftOpt.isPresent() && memberLiftOpt.get().getMonthNumber().equals(installment.getMonthNumber())) {
 	                    isLiftedThisMonth = true;
 	                    liftAmt = memberLiftOpt.get().getLiftedAmount();
-	                    liftDate = memberLiftOpt.get().getLiftedOn();
+	                    liftDate = memberLiftOpt.get().getLiftedDate();
 	                }
 	                
 	                return InstallmentDetailsDTO.builder()
@@ -371,45 +371,94 @@ public class AdminService {
 	            u.isStatus()
 	    )).collect(Collectors.toList());
 	}
-	
-	
-	
-	
-	@Transactional 
+
+
+
+
+	@Transactional
 	public String recordChitLift(ChitLiftRequestDTO dto) {
-	    
 
-		ChitMembers chitMember = chitMemberRepository.findById(dto.getChitMemberId())
-	            .orElseThrow(() -> new ResourceNotFoundException("Chit member not found with ID: " + dto.getChitMemberId()));
+		ChitMembers chitMember = chitMemberRepository
+				.findById(dto.getChitMemberId())
+				.orElseThrow(() ->
+						new ResourceNotFoundException(
+								"Chit member not found with ID: "
+										+ dto.getChitMemberId()));
+
+		Chits chit = chitMember.getChit();
+
+		Long chitId = chit.getId();
 
 
-		Long chitId = chitMember.getChit().getId();
 
-	    // 3. Validations
-	    if (chitLiftRepository.existsByChitMemberId(chitMember.getId())) {
-	        throw new BadRequestException("Blunder! This specific membership ticket has already lifted the chit.");
-	    }
+		if (dto.getMonthNumber() == null) {
+			throw new BadRequestException(
+					"Month number is required");
+		}
 
-	    if (chitLiftRepository.existsByChitIdAndMonthNumber(chitId, dto.getMonthNumber())) {
-	        throw new BadRequestException("Month " + dto.getMonthNumber() + " has already been lifted by another member in this chit.");
-	    }
+		if (dto.getMonthNumber() < 1 ||
+				dto.getMonthNumber() > chit.getTotalMonths()) {
 
-	    Long actualLiftedAmount = (dto.getLiftedAmount() != null) ? dto.getLiftedAmount() : 0L;
+			throw new BadRequestException(
+					"Invalid month number: "
+							+ dto.getMonthNumber());
+		}
 
-	    // 4. Save Logic
-	    ChitLifts chitLift = new ChitLifts();
-	    chitLift.setChit(chitMember.getChit());
-	    chitLift.setChitMember(chitMember);
-	    chitLift.setMonthNumber(dto.getMonthNumber());
-	    chitLift.setLiftedAmount(actualLiftedAmount);
-	    chitLift.setPaymentMethod(dto.getPaymentMethod());
-	    chitLift.setLiftedOn(java.time.LocalDateTime.now());
+		if (dto.getLiftedAmount() == null ||
+				dto.getLiftedAmount() <= 0) {
 
-	    chitLiftRepository.save(chitLift);
+			throw new BadRequestException(
+					"Lifted amount must be greater than zero");
+		}
 
-	    return "Success: Chit lifted by " + chitMember.getUser().getName() + " for Month " + dto.getMonthNumber();
+		if (dto.getLiftedDate() == null) {
+			throw new BadRequestException(
+					"Lifted date is required");
+		}
+
+
+
+		Optional<ChitLifts> existingLift =
+				chitLiftRepository.findByChitMemberId(
+						chitMember.getId());
+
+		if (existingLift.isPresent()) {
+
+			throw new BadRequestException(
+					"This member has already lifted the chit in Month "
+							+ existingLift.get().getMonthNumber());
+		}
+
+
+
+		if (chitLiftRepository.existsByChitIdAndMonthNumber(
+				chitId,
+				dto.getMonthNumber())) {
+
+			throw new BadRequestException(
+					"Month "
+							+ dto.getMonthNumber()
+							+ " has already been lifted by another member.");
+		}
+
+
+
+		ChitLifts chitLift = new ChitLifts();
+
+		chitLift.setChit(chit);
+		chitLift.setChitMember(chitMember);
+		chitLift.setMonthNumber(dto.getMonthNumber());
+		chitLift.setLiftedAmount(dto.getLiftedAmount());
+		chitLift.setPaymentMethod(dto.getPaymentMethod());
+		chitLift.setLiftedDate(dto.getLiftedDate());
+
+		chitLiftRepository.save(chitLift);
+
+		return "Success: Chit lifted by "
+				+ chitMember.getUser().getName()
+				+ " for Month "
+				+ dto.getMonthNumber();
 	}
-	
 	
 	public List<MonthlyFilterResponseDTO> getChitMonthReport(Long chitId, Integer monthNumber, String filterType) {
 	    

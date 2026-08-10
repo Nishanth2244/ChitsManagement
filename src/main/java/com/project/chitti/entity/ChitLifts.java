@@ -1,5 +1,6 @@
 package com.project.chitti.entity;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Entity;
@@ -32,7 +33,8 @@ public class ChitLifts {
     private Long liftedAmount; 
         
     private LocalDateTime liftedOn;
-    
+
+    private LocalDate liftedDate;
 //    private boolean isLifted;
     
     private String paymentMethod; 
